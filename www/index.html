@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>夜市夾娃娃 3D</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#1a1233; --cab:#2b1f52; --cab-edge:#4a3a85;
+  --neon:#ff5fa2; --neon-2:#5ff2e0; --gold:#ffd166;
+  --ink:#fff7fb; --ink-dim:#b8a9d9; --btn:#3b2d6d; --btn-hi:#5a4a9a;
+}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){ --bg:#1a1233; } }
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+body{
+  margin:0;min-height:100%;background:var(--bg);
+  background-image:radial-gradient(circle at 50% -10%,#3a2a6e 0,transparent 55%);
+  color:var(--ink);font-family:"Noto Sans TC","Baloo 2",system-ui,sans-serif;
+  display:flex;flex-direction:column;align-items:center;padding:12px 12px 24px;
+}
+h1{font-family:"Baloo 2","Noto Sans TC",sans-serif;font-weight:800;font-size:clamp(1.6rem,5vw,2.4rem);
+  margin:4px 0 8px;color:var(--neon);text-shadow:0 0 10px rgba(255,95,162,.7),0 0 30px rgba(255,95,162,.35)}
+.cabinet{width:min(100%,560px);background:var(--cab);border:4px solid var(--cab-edge);border-radius:22px;padding:12px;
+  box-shadow:0 20px 60px rgba(0,0,0,.5),inset 0 0 0 2px #1d1440}
+.marquee{display:flex;justify-content:space-between;align-items:center;padding:6px 10px 10px;
+  font-family:"Baloo 2",sans-serif;font-weight:800;font-size:1.05rem}
+.marquee .coins{color:var(--gold);font-size:1.4rem}
+.marquee .coins small{font-size:.8rem;color:var(--ink-dim);font-family:"Noto Sans TC";font-weight:500;margin-right:6px}
+.marquee .score{color:var(--neon-2)}
+.view{position:relative;width:100%;aspect-ratio:4/3;border-radius:12px;overflow:hidden;border:3px solid #3d2f75;background:#0f0a24}
+.view canvas{display:block;width:100%;height:100%;touch-action:none}
+.msg{min-height:1.6em;text-align:center;margin:10px 0 8px;font-weight:700}
+.msg.good{color:var(--gold)} .msg.bad{color:var(--ink-dim)}
+.controls{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 6px}
+.stick{
+  position:relative;width:136px;height:136px;border-radius:50%;flex:none;
+  background:radial-gradient(circle at 50% 40%,#3b2d6d,#1d1440 70%);
+  border:3px solid var(--cab-edge);box-shadow:inset 0 6px 14px rgba(0,0,0,.5);touch-action:none;user-select:none;
+}
+.stick::before{content:"";position:absolute;inset:14px;border-radius:50%;border:2px dashed rgba(184,169,217,.25)}
+.stick .arrow{position:absolute;font-size:12px;color:var(--ink-dim);left:50%;top:50%;transform:translate(-50%,-50%)}
+.stick .arrow.n{top:10px}.stick .arrow.s{top:auto;bottom:-2px}.stick .arrow.w{left:12px}.stick .arrow.e{left:auto;right:0}
+.knob{
+  position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#ff9ec8,#ff5fa2 55%,#b5386f);
+  box-shadow:0 8px 14px rgba(0,0,0,.5),inset 0 -4px 6px rgba(0,0,0,.25);
+}
+.knob.active{transition:none}
+.right-col{display:flex;flex-direction:column;gap:8px;flex:1;max-width:220px}
+button{font-family:"Noto Sans TC",sans-serif;font-weight:700;font-size:1.05rem;color:var(--ink);background:var(--btn);
+  border:0;border-bottom:5px solid #1b1338;border-radius:14px;padding:14px 8px;cursor:pointer;user-select:none;-webkit-user-select:none;transition:transform .06s}
+button:active{transform:translateY(3px);border-bottom-width:2px;background:var(--btn-hi)}
+button:focus-visible{outline:3px solid var(--neon-2);outline-offset:2px}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.drop{background:var(--neon);border-bottom-color:#a5285f;color:#2a0a1a;font-size:1.25rem;padding:26px 8px;border-radius:50%;
+  width:110px;height:110px;align-self:center;box-shadow:0 0 22px rgba(255,95,162,.45)}
+button.drop:active{background:#ff86ba}
+button.demo{background:var(--neon-2);color:#062b27;border-bottom-color:#2aa596;padding:10px 8px;font-size:.95rem}
+button.demo:active{background:#8ff7ea}
+.hint{font-size:.8rem;color:var(--ink-dim);text-align:center}
+.shelf{margin-top:12px;background:#221a45;border-radius:12px;padding:10px}
+.shelf-head{display:flex;justify-content:space-between;align-items:center;font-weight:700}
+.shelf-head span{color:var(--ink-dim);font-weight:500;font-size:.9rem}
+.shelf button{padding:8px 14px;font-size:.95rem;background:var(--gold);color:#3a2400;border-bottom-color:#b8912e;border-radius:10px}
+.bag{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-height:36px}
+.bag .item{display:inline-flex;align-items:center;gap:6px;background:#332a60;border-radius:999px;padding:4px 10px 4px 6px;font-size:.9rem}
+.bag .item i{width:14px;height:14px;border-radius:4px;display:inline-block}
+.bag .item b{color:var(--gold);font-family:"Baloo 2"}
+.bag .empty{color:var(--ink-dim);font-size:.9rem;padding:6px 2px}
+.legend{width:min(100%,560px);margin-top:14px;color:var(--ink-dim);font-size:.85rem;line-height:1.6}
+.legend ul{margin:4px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:4px 14px}
+.legend li{display:flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.legend b{color:var(--gold);font-family:"Baloo 2"}
+.overlay{position:fixed;inset:0;background:rgba(10,6,25,.85);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
+.overlay.show{display:flex}
+.panel{background:var(--cab);border:4px solid var(--cab-edge);border-radius:20px;padding:26px 28px;max-width:360px;text-align:center}
+.panel h2{font-family:"Baloo 2";font-size:1.8rem;margin:0 0 6px;color:var(--neon)}
+.panel p{margin:6px 0 18px;color:var(--ink-dim)}
+.panel button{background:var(--neon);color:#2a0a1a;border-bottom-color:#a5285f;padding:12px 26px}
+@media (max-width:420px){ .stick{width:118px;height:118px} button.drop{width:96px;height:96px;font-size:1.1rem} }
+@media (prefers-reduced-motion:reduce){ button,.knob{transition:none} }
+</style>
+</head>
+<body>
+<h1>夜市夾娃娃 3D</h1>
+<div class="cabinet">
+  <div class="marquee">
+    <div class="coins"><small>硬幣</small><span id="coins">10</span></div>
+    <div class="score">總價值 <span id="worth">0</span></div>
+  </div>
+  <div class="view"><canvas id="game" aria-label="3D 夾娃娃機畫面"></canvas></div>
+  <div class="msg" id="msg">每次投 1 枚硬幣，把娃娃夾到前方左邊的出口</div>
+  <div class="controls">
+    <div class="stick" id="stick" aria-label="搖桿">
+      <span class="arrow n">▲</span><span class="arrow s">▼</span><span class="arrow w">◀</span><span class="arrow e">▶</span>
+      <div class="knob" id="knob"></div>
+    </div>
+    <div class="right-col">
+      <button id="drop" class="drop">投幣<br>下爪</button>
+      <button id="demo" class="demo">▶ 電腦示範</button>
+      <div class="hint">搖桿移動爪子・電腦可用方向鍵＋空白鍵</div>
+    </div>
+  </div>
+  <div class="shelf">
+    <div class="shelf-head">
+      <div>戰利品 <span id="bagCount">(0)</span></div>
+      <button id="redeem" disabled>全部兌換成硬幣</button>
+    </div>
+    <div class="bag" id="bag"><span class="empty">還沒夾到東西，試試看吧</span></div>
+  </div>
+</div>
+<div class="legend">
+  對得越準成功率越高。物品越值錢，越容易在上升途中滑落。
+  <ul id="legend"></ul>
+</div>
+<div class="overlay" id="over">
+  <div class="panel">
+    <h2>沒硬幣了</h2>
+    <p id="overText"></p>
+    <button id="restart">再玩一局</button>
+  </div>
+</div>
+
+<script src="three.min.js"></script>
+<script>
+(() => {
+const START_COINS = 10;
+// 3D prize types: geometry factory, colour, value, grab chance, slip chance, collision radius, rest height
+const TYPES = [
+  {name:'小鴨球', color:0xffd23f, value:1,  grab:.92, slip:.03, r:.42, geo:()=>new THREE.SphereGeometry(.42,24,18)},
+  {name:'小熊方塊', color:0xc47a3d, value:2, grab:.80, slip:.08, r:.44, geo:()=>new THREE.BoxGeometry(.7,.7,.7)},
+  {name:'兔子圓錐', color:0xff8fc2, value:3, grab:.68, slip:.12, r:.40, geo:()=>new THREE.ConeGeometry(.42,.85,20), y:.425},
+  {name:'獨角獸環', color:0xb388ff, value:5, grab:.48, slip:.20, r:.48, geo:()=>new THREE.TorusGeometry(.32,.15,14,28), rot:[Math.PI/2,0,0], y:.15},
+  {name:'金蛋',   color:0xffb020, value:8,  grab:.32, slip:.28, r:.40, geo:()=>{const g=new THREE.SphereGeometry(.36,24,18); g.scale(1,1.3,1); return g;}, y:.47, metal:.8},
+  {name:'鑽石',   color:0x5ff2e0, value:15, grab:.18, slip:.40, r:.40, geo:()=>new THREE.OctahedronGeometry(.45,0), y:.45, metal:.9},
+];
+const WEIGHTS = [30,26,20,13,7,4];
+
+// arena bounds
+const AX = 3.4, AZ = 2.4;           // half extents
+const CHUTE = {x:-2.6, z:1.7, w:1.3, d:1.3};  // front-left square hole
+const TOP_Y = 5.2, FLOOR_Y = 0;
+
+const ui = {};
+['coins','worth','msg','bag','bagCount','redeem','drop','demo','over','overText','restart','stick','knob','legend'].forEach(id=>ui[id]=document.getElementById(id));
+
+// ---- three.js scene ----
+const canvas = document.getElementById('game');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0f0a24);
+const camera = new THREE.PerspectiveCamera(42, 4/3, .1, 100);
+camera.position.set(0, 8.2, 9.6);
+camera.lookAt(0, 1.4, 0);
+
+scene.add(new THREE.HemisphereLight(0xffe6f5, 0x2a1b5a, .75));
+const sun = new THREE.DirectionalLight(0xffffff, .9);
+sun.position.set(3, 9, 4); sun.castShadow = true;
+sun.shadow.mapSize.set(1024,1024);
+Object.assign(sun.shadow.camera, {left:-6,right:6,top:6,bottom:-6,near:1,far:25});
+scene.add(sun);
+const neon = new THREE.PointLight(0xff5fa2, .9, 12); neon.position.set(-2.5, 3.5, 2.5); scene.add(neon);
+const neon2 = new THREE.PointLight(0x5ff2e0, .7, 12); neon2.position.set(3, 3.5, -2); scene.add(neon2);
+
+// floor
+const floorMat = new THREE.MeshStandardMaterial({color:0x3a2e6b, roughness:.9});
+const floor = new THREE.Mesh(new THREE.BoxGeometry(AX*2+.6, .4, AZ*2+.6), floorMat);
+floor.position.y = -.2; floor.receiveShadow = true; scene.add(floor);
+// chute hole (dark box slightly below floor + neon rim)
+const hole = new THREE.Mesh(new THREE.BoxGeometry(CHUTE.w, .5, CHUTE.d), new THREE.MeshBasicMaterial({color:0x06030f}));
+hole.position.set(CHUTE.x, .06, CHUTE.z); scene.add(hole);
+const rim = new THREE.Mesh(new THREE.BoxGeometry(CHUTE.w+.16, .06, CHUTE.d+.16), new THREE.MeshStandardMaterial({color:0xff5fa2, emissive:0xff5fa2, emissiveIntensity:.8}));
+rim.position.set(CHUTE.x, .02, CHUTE.z); scene.add(rim);
+const rimInner = new THREE.Mesh(new THREE.BoxGeometry(CHUTE.w, .08, CHUTE.d), new THREE.MeshBasicMaterial({color:0x06030f}));
+rimInner.position.set(CHUTE.x, .03, CHUTE.z); scene.add(rimInner);
+// glass walls
+const glassMat = new THREE.MeshPhysicalMaterial({color:0xbfe8ff, transparent:true, opacity:.10, roughness:.05, metalness:0, side:THREE.DoubleSide});
+[[0,-AZ-.3,AX*2+.6,0],[0,AZ+.3,AX*2+.6,0],[-AX-.3,0,AZ*2+.6,Math.PI/2],[AX+.3,0,AZ*2+.6,Math.PI/2]].forEach(([x,z,w,ry])=>{
+  const g = new THREE.Mesh(new THREE.PlaneGeometry(w, 6.2), glassMat);
+  g.position.set(x, 3.1, z); g.rotation.y = ry; scene.add(g);
+});
+// frame posts
+const postMat = new THREE.MeshStandardMaterial({color:0x6b5aa8, roughness:.5, metalness:.3});
+[[-AX-.3,-AZ-.3],[AX+.3,-AZ-.3],[-AX-.3,AZ+.3],[AX+.3,AZ+.3]].forEach(([x,z])=>{
+  const p = new THREE.Mesh(new THREE.BoxGeometry(.18,6.4,.18), postMat); p.position.set(x,3.2,z); scene.add(p);
+});
+// top rails
+const railX = new THREE.Mesh(new THREE.BoxGeometry(AX*2+.6,.14,.14), postMat); railX.position.set(0,6.4,-AZ-.3); scene.add(railX);
+const railX2 = railX.clone(); railX2.position.z = AZ+.3; scene.add(railX2);
+const gantry = new THREE.Mesh(new THREE.BoxGeometry(.14,.14,AZ*2+.6), new THREE.MeshStandardMaterial({color:0xd9d2f2}));
+gantry.position.y = 6.4; scene.add(gantry);
+
+// ---- claw ----
+const claw = new THREE.Group();
+const carriage = new THREE.Mesh(new THREE.BoxGeometry(.6,.3,.6), new THREE.MeshStandardMaterial({color:0xd9d2f2}));
+carriage.position.y = 6.4; claw.add(carriage);
+const cable = new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,1,8), new THREE.MeshStandardMaterial({color:0xc9c0e8}));
+claw.add(cable);
+const head = new THREE.Group(); claw.add(head);
+const headMesh = new THREE.Mesh(new THREE.CylinderGeometry(.3,.36,.4,20), new THREE.MeshStandardMaterial({color:0xe8e2fb, metalness:.4, roughness:.4}));
+headMesh.castShadow = true; head.add(headMesh);
+const arms = [];
+const armMat = new THREE.MeshStandardMaterial({color:0xffd166, metalness:.6, roughness:.35});
+for(let i=0;i<3;i++){
+  const pivot = new THREE.Group();
+  pivot.rotation.y = i*Math.PI*2/3;
+  const arm = new THREE.Group(); arm.position.set(.3,-.15,0);
+  const seg1 = new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.7,10), armMat); seg1.position.y=-.35; seg1.castShadow=true; arm.add(seg1);
+  const tip = new THREE.Group(); tip.position.y=-.7; tip.rotation.z = -.9;
+  const seg2 = new THREE.Mesh(new THREE.CylinderGeometry(.045,.03,.5,10), armMat); seg2.position.y=-.25; seg2.castShadow=true; tip.add(seg2);
+  arm.add(tip); pivot.add(arm); head.add(pivot);
+  arms.push(arm);
+}
+scene.add(claw);
+function setClawPose(x, y, z, open){
+  claw.position.set(x, 0, z);
+  head.position.y = y;
+  cable.scale.y = Math.max(.01, 6.25 - y); cable.position.y = (6.25 + y)/2;
+  arms.forEach(a => a.rotation.z = .15 + open*.55);   // open: arms splayed outward
+}
+
+// ---- state ----
+let coins, bag, prizes, cs, joy = {x:0, y:0}, gamesPlayed, prizesWon;
+const clock = new THREE.Clock();
+
+function pickType(){
+  const total = WEIGHTS.reduce((a,b)=>a+b,0); let r = Math.random()*total;
+  for(let i=0;i<TYPES.length;i++){ r -= WEIGHTS[i]; if(r<0) return TYPES[i]; }
+  return TYPES[0];
+}
+function inChute(x,z,pad=0){ return Math.abs(x-CHUTE.x) < CHUTE.w/2+pad && Math.abs(z-CHUTE.z) < CHUTE.d/2+pad; }
+function spawnPrizes(n){
+  let tries = 0;
+  while(prizes.length < n && tries < 500){
+    tries++;
+    const t = pickType();
+    const x = -AX + .5 + Math.random()*(AX*2-1), z = -AZ + .5 + Math.random()*(AZ*2-1);
+    if(inChute(x,z,.6)) continue;
+    if(!prizes.every(p => Math.hypot(p.x-x,p.z-z) > p.r + t.r + .1)) continue;
+    const mesh = new THREE.Mesh(t.geo(), new THREE.MeshStandardMaterial({color:t.color, roughness:.45, metalness:t.metal||.1}));
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    if(t.rot) mesh.rotation.set(...t.rot);
+    mesh.rotation.y = Math.random()*6.28;
+    const p = {type:t, x, z, y:t.y ?? t.r, r:t.r, mesh, spin:(Math.random()-.5)*.6, bob:Math.random()*6.28};
+    mesh.position.set(x,p.y,z); scene.add(mesh); prizes.push(p);
+  }
+}
+function removePrize(p){ scene.remove(p.mesh); p.mesh.geometry.dispose(); p.mesh.material.dispose(); prizes.splice(prizes.indexOf(p),1); }
+
+function reset(){
+  if(prizes) prizes.slice().forEach(removePrize);
+  coins = START_COINS; bag = []; prizes = []; gamesPlayed = 0; prizesWon = 0;
+  spawnPrizes(14);
+  cs = {x:0, y:TOP_Y, z:0, open:1, state:'idle', held:null, t:0};
+  ui.over.classList.remove('show');
+  setMsg('每次投 1 枚硬幣，把娃娃夾到前方左邊的出口');
+  render();
+}
+function setMsg(text, cls=''){ ui.msg.textContent = text; ui.msg.className = 'msg ' + cls; }
+function hex(c){ return '#' + c.toString(16).padStart(6,'0'); }
+function render(){
+  ui.coins.textContent = coins;
+  ui.worth.textContent = bag.reduce((a,p)=>a+p.value,0);
+  ui.bagCount.textContent = `(${bag.length})`;
+  ui.redeem.disabled = bag.length === 0;
+  if(!bag.length) ui.bag.innerHTML = '<span class="empty">還沒夾到東西，試試看吧</span>';
+  else {
+    const counts = {}; bag.forEach(p => counts[p.name] = (counts[p.name]||0)+1);
+    ui.bag.innerHTML = TYPES.filter(t=>counts[t.name]).map(t =>
+      `<span class="item"><i style="background:${hex(t.color)}"></i>${t.name}×${counts[t.name]} <b>+${t.value*counts[t.name]}</b></span>`).join('');
+  }
+  ui.drop.disabled = cs.state !== 'idle' || coins <= 0;
+  ui.demo.disabled = cs.state !== 'idle';
+}
+function startDemo(){
+  if(cs.state !== 'idle' || !prizes.length) return;
+  // pick the most valuable prize on the floor (nearest one breaks ties)
+  const target = prizes.slice().sort((a,b) => b.type.value - a.type.value || Math.hypot(a.x-cs.x,a.z-cs.z) - Math.hypot(b.x-cs.x,b.z-cs.z))[0];
+  cs.demo = true; cs.target = target; cs.state = 'demoMove';
+  setMsg(`電腦示範：瞄準 ${target.type.name}`);
+  render();
+}
+function startDrop(){
+  if(cs.state !== 'idle') return;
+  if(coins <= 0){ checkGameOver(); return; }
+  coins--; gamesPlayed++;
+  cs.state = 'drop'; setMsg('下爪中……'); render();
+}
+function grabAttempt(){
+  if(cs.demo && cs.target && prizes.includes(cs.target)){
+    setMsg(`電腦示範：精準抓住 ${cs.target.type.name}`); return cs.target;
+  }
+  let best = null, bestD = 1e9;
+  for(const p of prizes){
+    const d = Math.hypot(p.x - cs.x, p.z - cs.z);
+    if(d < p.r + .35 && d < bestD){ best = p; bestD = d; }
+  }
+  if(!best){ setMsg('夾了個空氣', 'bad'); return null; }
+  const centered = 1 - bestD/(best.r+.35);
+  if(Math.random() < best.type.grab * (0.55 + 0.45*centered)){
+    setMsg(`抓住 ${best.type.name}！穩住……`); return best;
+  }
+  setMsg(`${best.type.name} 從爪縫溜走了`, 'bad'); return null;
+}
+function checkGameOver(){
+  if(coins <= 0 && bag.length === 0 && cs.state === 'idle'){
+    ui.overText.textContent = `這局玩了 ${gamesPlayed} 次，總共夾到 ${prizesWon} 個娃娃。`;
+    ui.over.classList.add('show');
+  }
+}
+
+// ---- update loop ----
+function update(dt, t){
+  const c = cs;
+  switch(c.state){
+    case 'idle':
+      c.x = Math.max(-AX+.4, Math.min(AX-.4, c.x + joy.x*3.2*dt));
+      c.z = Math.max(-AZ+.4, Math.min(AZ-.4, c.z + joy.y*3.2*dt));
+      break;
+    case 'demoMove': {
+      const tp = c.target;
+      if(!tp || !prizes.includes(tp)){ c.demo=false; c.state='idle'; render(); break; }
+      const dx = tp.x - c.x, dz = tp.z - c.z, d = Math.hypot(dx,dz);
+      if(d < .03){ c.x = tp.x; c.z = tp.z; c.state='drop'; setMsg('電腦示範：下爪……'); }
+      else { const v = Math.min(2.6*dt, d); c.x += dx/d*v; c.z += dz/d*v; }
+      break; }
+    case 'drop':
+      c.y -= 3.6*dt;
+      if(c.y <= 1.0){ c.y = 1.0; c.state='close'; c.t=0; }
+      break;
+    case 'close':
+      c.t += dt; c.open = Math.max(0, 1 - c.t/.35);
+      if(c.t >= .55){
+        c.held = grabAttempt();
+        if(c.held){ c.held.grabbed=true; c.slipAt = .25 + Math.random()*.6; c.slipRoll = Math.random(); c.slipped=false; }
+        c.state='rise'; c.t=0;
+      }
+      break;
+    case 'rise':
+      c.y += 3*dt;
+      if(c.held){
+        const prog = (c.y-1)/(TOP_Y-1);
+        if(!c.demo && !c.slipped && prog > c.slipAt && c.slipRoll < c.held.type.slip){
+          c.slipped = true; const p = c.held; c.held=null; p.grabbed=false; p.falling=true; p.vy=0;
+          setMsg(`啊……${p.type.name} 掉下去了`, 'bad');
+        }
+      }
+      if(c.y >= TOP_Y){ c.y = TOP_Y; c.state = c.held ? 'carry' : 'return'; }
+      break;
+    case 'carry': {
+      const dx = CHUTE.x - c.x, dz = CHUTE.z - c.z, d = Math.hypot(dx,dz);
+      if(d < .08){ c.x = CHUTE.x; c.z = CHUTE.z; c.state='release'; c.t=0; }
+      else { c.x += dx/d*3.4*dt; c.z += dz/d*3.4*dt; }
+      break; }
+    case 'release':
+      c.t += dt; c.open = Math.min(1, c.t/.3);
+      if(c.held){ const p=c.held; c.held=null; p.grabbed=false; p.falling=true; p.vy=0; p.toChute=true; p.demo=c.demo; }
+      if(c.t > .6) c.state='return';
+      break;
+    case 'return': {
+      c.open = Math.min(1, c.open + dt*3);
+      const dx = -c.x, dz = -c.z, d = Math.hypot(dx,dz);
+      if(d < .08){ c.x=0; c.z=0; c.state='idle'; c.demo=false; c.target=null; if(prizes.length < 7) spawnPrizes(14); render(); checkGameOver(); }
+      else { c.x += dx/d*3.4*dt; c.z += dz/d*3.4*dt; }
+      break; }
+  }
+  // held prize follows the claw
+  if(c.held){ c.held.x = c.x; c.held.z = c.z; c.held.y = c.y - .95; }
+  // falling prizes
+  for(const p of prizes.slice()){
+    if(!p.falling) continue;
+    p.vy -= 16*dt; p.y += p.vy*dt;
+    const rest = p.type.y ?? p.r;
+    if(p.toChute){
+      if(p.y < -1.2){
+        removePrize(p);
+        if(p.demo){
+          setMsg(`示範結束：${p.type.name} 完美入洞（示範不計入戰利品）`, 'good');
+        } else {
+          bag.push({name:p.type.name, value:p.type.value}); prizesWon++;
+          setMsg(`${p.type.name} 到手！可兌換 ${p.type.value} 枚硬幣`, 'good');
+        }
+        render();
+      }
+    } else if(p.y <= rest){
+      p.y = rest; p.falling=false; p.vy=0;
+      if(inChute(p.x,p.z,.5)){ p.x = CHUTE.x + CHUTE.w/2 + .7; }
+    }
+  }
+  // sync meshes
+  for(const p of prizes){
+    const bob = (p.falling||p.grabbed) ? 0 : Math.sin(t*1.6+p.bob)*.02;
+    p.mesh.position.set(p.x, p.y+bob, p.z);
+    if(!p.falling && !p.grabbed) p.mesh.rotation.y += p.spin*dt;
+  }
+  setClawPose(c.x, c.y, c.z, c.open);
+}
+
+function resize(){
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if(canvas.width !== w*renderer.getPixelRatio() || canvas.height !== h*renderer.getPixelRatio()){
+    renderer.setSize(w, h, false); camera.aspect = w/h; camera.updateProjectionMatrix();
+  }
+}
+function loop(){
+  const dt = Math.min(.05, clock.getDelta());
+  resize(); update(dt, clock.elapsedTime); renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+
+// ---- joystick ----
+const stickR = () => ui.stick.clientWidth/2 - 30;
+let stickId = null;
+ui.stick.addEventListener('pointerdown', e => {
+  stickId = e.pointerId; ui.stick.setPointerCapture(e.pointerId); ui.knob.classList.add('active'); moveStick(e);
+});
+ui.stick.addEventListener('pointermove', e => { if(e.pointerId===stickId) moveStick(e); });
+['pointerup','pointercancel'].forEach(ev => ui.stick.addEventListener(ev, e => {
+  if(e.pointerId!==stickId) return; stickId=null; joy.x=joy.y=0;
+  ui.knob.classList.remove('active'); ui.knob.style.transform='';
+}));
+function moveStick(e){
+  const r = ui.stick.getBoundingClientRect();
+  let dx = e.clientX - (r.left+r.width/2), dy = e.clientY - (r.top+r.height/2);
+  const R = stickR(), d = Math.hypot(dx,dy);
+  if(d > R){ dx *= R/d; dy *= R/d; }
+  joy.x = dx/R; joy.y = dy/R;
+  ui.knob.style.transform = `translate(${dx}px,${dy}px)`;
+}
+// keyboard
+const keys = {};
+function keyJoy(){
+  if(stickId!==null) return;
+  joy.x = (keys.ArrowRight?1:0) - (keys.ArrowLeft?1:0);
+  joy.y = (keys.ArrowDown?1:0) - (keys.ArrowUp?1:0);
+  const m = Math.hypot(joy.x,joy.y); if(m>1){ joy.x/=m; joy.y/=m; }
+}
+window.addEventListener('keydown', e => {
+  if(e.code.startsWith('Arrow')){ keys[e.code]=true; keyJoy(); e.preventDefault(); }
+  if(e.code==='Space' && !e.repeat){ e.preventDefault(); startDrop(); }
+});
+window.addEventListener('keyup', e => { if(e.code.startsWith('Arrow')){ keys[e.code]=false; keyJoy(); } });
+
+ui.drop.addEventListener('click', startDrop);
+ui.demo.addEventListener('click', startDemo);
+ui.redeem.addEventListener('click', () => {
+  const gain = bag.reduce((a,p)=>a+p.value,0); if(!gain) return;
+  coins += gain; bag = []; setMsg(`兌換完成，+${gain} 枚硬幣`, 'good'); render();
+});
+ui.restart.addEventListener('click', reset);
+ui.legend.innerHTML = TYPES.map(t => `<li><i style="background:${hex(t.color)}"></i>${t.name} <b>${t.value}</b> 枚・成功率約 ${Math.round(t.grab*100)}%</li>`).join('');
+
+reset();
+loop();
+})();
+</script>
+</body>
+</html>
